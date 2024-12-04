@@ -162,7 +162,7 @@ const ScanGroup = ({ title, scans, setSelectedScan }) => {
       <div className="space-y-4">
         {scans.map((scan) => (
           <motion.div
-            layoutId={`scan-${scan._id}`}
+            layoutId={`scan-card-${scan._id}`}
             key={scan._id}
             onClick={() => setSelectedScan(scan)}
             className="flex items-center justify-between bg-white p-4 rounded-xl cursor-pointer
@@ -173,17 +173,21 @@ const ScanGroup = ({ title, scans, setSelectedScan }) => {
               hover:shadow-[0_16px_28px_rgba(0,0,0,0.12)]
               hover:translate-y-[-4px]"
           >
-            <motion.div layoutId={`image-${scan._id}`} className="flex items-center space-x-4">
-              <img
-                src={scan.imageUrl}
-                alt={scan.category}
-                className="w-16 h-16 rounded-xl object-cover"
-              />
-              <div>
-                <h3 className="font-medium text-gray-800">{scan.category}</h3>
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 flex-shrink-0">
+                <img
+                  src={scan.imageUrl}
+                  alt={scan.category}
+                  className="w-full h-full rounded-xl object-cover"
+                />
               </div>
+              <motion.div layoutId={`title-${scan._id}`}>
+                <h3 className="font-medium text-gray-800">{scan.category}</h3>
+              </motion.div>
+            </div>
+            <motion.div layoutId={`rating-${scan._id}`}>
+              <RatingCircle rating={parseFloat(scan.analysis?.match(/Rating:\s*(\d+(\.\d+)?)/)?.[1] || '0')} />
             </motion.div>
-            <RatingCircle rating={parseFloat(scan.analysis.match(/Rating:\s*(\d+(\.\d+)?)/)?.[1] || '0')} />
           </motion.div>
         ))}
       </div>
@@ -346,9 +350,10 @@ const RecentScansPage = () => {
   }, [selectedScan]);
 
   const filteredScans = () => {
-    return sortedAndFilteredScans().filter(scan => 
-      currentFilter === 'All' || scan.category === currentFilter
-    );
+    return sortedAndFilteredScans().filter(scan => {
+      const rating = parseFloat(scan.analysis.match(/Rating:\s*(\d+(\.\d+)?)/)?.[1] || '0');
+      return rating > 0; // Only include scans with a rating greater than 0
+    });
   };
 
   const groupedScans = groupScansByDate(filteredScans());
@@ -365,7 +370,7 @@ const RecentScansPage = () => {
             >
               <ArrowLeft size={24} className="text-gray-700" />
             </button>
-            <h1 className="ml-4 text-xl font-semibold text-gray-800">Recent Scans</h1>
+            <h1 className="ml-4 text-xl font-touche text-gray-800">Recent Scans</h1>
           </div>
           
           <div className="flex items-center">
@@ -387,7 +392,7 @@ const RecentScansPage = () => {
         onFilterChange={setCurrentFilter}
       />
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {selectedScan && (
           <>
             <motion.div
@@ -396,42 +401,47 @@ const RecentScansPage = () => {
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/20 backdrop-blur-sm z-10"
             />
-            <div className="fixed inset-0 grid place-items-center z-[100]">
+            <div className="fixed inset-0 grid place-items-center z-[100] p-4">
               <motion.button
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute top-4 right-4 p-2 rounded-full bg-white"
+                className="absolute top-8 right-8 p-2.5 rounded-full bg-white/90 backdrop-blur-sm 
+                  shadow-lg hover:bg-white transition-colors"
                 onClick={() => setSelectedScan(null)}
               >
-                <X size={20} />
+                <X size={20} className="text-gray-700" />
               </motion.button>
               
               <motion.div
-                layoutId={`scan-${selectedScan._id}`}
+                layoutId={`scan-card-${selectedScan._id}`}
                 ref={ref}
-                className="w-full max-w-[600px] h-[90vh] bg-gradient-to-b from-gray-50 to-white rounded-3xl overflow-hidden shadow-xl
-                  flex flex-col"
+                className="w-full max-w-[600px] h-[85vh] bg-gradient-to-b from-gray-50 to-white 
+                  rounded-3xl overflow-hidden shadow-xl flex flex-col mt-16"
               >
                 <div className="flex-none p-6 bg-gradient-to-b from-gray-50 to-gray-50/95">
                   <div className="flex items-center justify-between mb-4">
-                    <motion.div layoutId={`image-${selectedScan._id}`} className="flex items-center gap-4">
-                      <img
-                        src={selectedScan.imageUrl}
-                        alt={selectedScan.category}
-                        className="w-16 h-16 rounded-xl object-cover"
-                      />
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 flex-shrink-0">
+                        <img
+                          src={selectedScan.imageUrl}
+                          alt={selectedScan.category}
+                          className="w-full h-full rounded-xl object-cover"
+                        />
+                      </div>
                       <div>
-                        <h2 className="text-xl font-semibold">{selectedScan.category}</h2>
+                        <motion.h2 layoutId={`title-${selectedScan._id}`} className="text-xl font-semibold">
+                          {selectedScan.category}
+                        </motion.h2>
                         <p className="text-gray-500">
                           {new Date(selectedScan.timestamp).toLocaleString()}
                         </p>
                       </div>
-                    </motion.div>
-                    
-                    <div className="scale-150">
-                      <RatingCircle rating={parseAnalysis(selectedScan.analysis).rating} />
                     </div>
+                    
+                    <motion.div layoutId={`rating-${selectedScan._id}`} className="scale-150">
+                      <RatingCircle rating={parseAnalysis(selectedScan.analysis).rating} />
+                    </motion.div>
                   </div>
                 </div>
 
